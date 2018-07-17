@@ -370,15 +370,17 @@ class YOLO(object):
 
         for i in range(generator.size()):
             raw_image = generator.load_image(i)
+            raw_height, raw_width, raw_channels = raw_image.shape
 
             # make the boxes and the labels
             pred_boxes  = self.predict(raw_image)
+
             
             score = np.array([box.score for box in pred_boxes])
             pred_labels = np.array([box.label for box in pred_boxes])        
             
             if len(pred_boxes) > 0:
-                pred_boxes = np.array([[box.xmin, box.ymin, box.xmax, box.ymax, box.score] for box in pred_boxes]) 
+                pred_boxes = np.array([[box.xmin*raw_width, box.ymin*raw_height, box.xmax*raw_width, box.ymax*raw_height, box.score] for box in pred_boxes])
             else:
                 pred_boxes = np.array([[]])  
             
@@ -451,7 +453,7 @@ class YOLO(object):
             precision = true_positives / np.maximum(true_positives + false_positives, np.finfo(np.float64).eps)
 
             # compute average precision
-            average_precision  = compute_ap(recall, precision)
+            average_precision  = compute_ap(recall, precision)  
             average_precisions[label] = average_precision
 
         return average_precisions    
@@ -467,11 +469,5 @@ class YOLO(object):
 
         netout = self.model.predict([input_image, dummy_array])[0]
         boxes  = decode_netout(netout, self.anchors, self.nb_class)
-
-        for i in range(len(boxes)):
-            boxes[i].xmin = int(boxes[i].xmin*image_w)
-            boxes[i].ymin = int(boxes[i].ymin*image_h)
-            boxes[i].xmax = int(boxes[i].xmax*image_w)
-            boxes[i].ymax = int(boxes[i].ymax*image_h)
 
         return boxes
